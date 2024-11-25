@@ -1,8 +1,8 @@
 from fastapi import FastAPI, status, Body, HTTPException, Request
-from pydantic import BaseModel
-from typing import List
-from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
+from pydantic import BaseModel
+from fastapi.templating import Jinja2Templates
+from typing import List
 
 app = FastAPI()
 
@@ -18,7 +18,7 @@ class Message(BaseModel):
 
 @app.get("/")
 def get_all_messages(request: Request) -> HTMLResponse:
-    return templates.TemplateResponse("message.html", {"request": request, "messages": messages_db})
+    return templates.TemplateResponse('message.html', {'request': request, 'messages': messages_db})
 
 
 @app.get(path="/message/{message_id}")
@@ -57,13 +57,6 @@ def delete_message(message_id: int) -> str:
 
 @app.delete("/")
 def kill_message_all() -> str:
-    """
-    Deletes all messages in the database.
-
-    :raises HTTPException: If no messages are found in the database.
-
-    :return:
-    """
     messages_db.clear()
     return "All_messages_deleted!"
 
