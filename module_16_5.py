@@ -1,12 +1,14 @@
-from fastapi import FastAPI, status, Body, HTTPException, Request, Form
+from fastapi import FastAPI, HTTPException, Request, Path
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 from fastapi.templating import Jinja2Templates
+from typing import Annotated
 
 app = FastAPI()
 
 templates = Jinja2Templates(directory="templates_dz")
 
-users = {}
+users = []
 
 
 class User(BaseModel):
@@ -16,12 +18,13 @@ class User(BaseModel):
 
 
 @app.get("/")
-def home(request: Request):
+def home(request: Request) -> HTMLResponse:
     return templates.TemplateResponse("users.html", {"request": request, "users": users})
 
 
 @app.get("/user/{user_id}")
-def get_user(request: Request, user_id: int):
+def get_user(request: Request, user_id: Annotated[int, Path(ge=1, le=100, description='Enter User ID', example='1')]) \
+        -> HTMLResponse:
     for user in users:
         if user.id == user_id:
             return templates.TemplateResponse("users.html", {"request": request, "user": user})
@@ -29,21 +32,31 @@ def get_user(request: Request, user_id: int):
 
 
 @app.post("/user/{username}/{age}")
-async def create_user(username: str, age) -> str:
+async def create_user(username: Annotated[str, Path(min_length=5, max_length=20,
+                                                    description='Enter username', example='UrbanUser')],
+                      age: Annotated[int, Path(le=120, ge=18, description='Enter age', example='24')]) -> User:
     user_id = str(len(users) + 1)
-    users[user_id] = User(id=int(user_id), username=username, age=int(age))
-    return f"User {user_id} is registered"
+    user = User(id=user_id, username=username, age=age)
+    users.append(user)
+    return user
 
 
 @app.put("/user/{user_id}/{username}/{age}")
-async def update_user(user_id: int, username: str, age: int) -> str:
-    users[user_id] = f"Имя: {username}, возраст: {age}"
-    return f"The user {user_id} is updated"
+async def update_user(user_id: Annotated[int, Path(ge=1, le=100, description='Enter User ID', example='1')],
+                      username: Annotated[str, Path(min_length=5, max_length=20,
+                                                    description='Enter username', example='UrbanUser')],
+                      age: Annotated[int, Path(le=120, ge=18, description='Enter age', example='24')]) -> User:
+    for user in users:
+        if user.id == user_id:
+            user.username = username
+            user.age = age
+            return user
+    raise HTTPException(status_code=404, detail='User was not found')
 
 
 @app.delete("/user/{user_id}")
 async def delete_user(user_id: str) -> str:
-    users.pop(user_id)
+    users.remove(user_id)
     return f'User {user_id} has been deleted'
 
 # python -m uvicorn module_16_5:app
